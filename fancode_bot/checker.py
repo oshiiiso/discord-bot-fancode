@@ -28,6 +28,12 @@ async def run_check_all_games(bot):
             is_first_run = not sent_codes_exists(key)
 
             current_codes = fetch_latest_codes(key, config["url"])
+            if current_codes is None:
+                # ページ取得やテーブル解析に失敗した場合は、
+                # 「有効なコードが0件」として誤保存しないようスキップする。
+                info_log(f"[警告] {config['name']} のコード取得に失敗したため、今回のチェックをスキップします。")
+                continue
+
             saved_codes = load_saved_codes(key)
             current_keys = set(current_codes.keys())
 

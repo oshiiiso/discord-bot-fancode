@@ -13,6 +13,10 @@ def setup_commands(bot):
     @commands.has_permissions(manage_messages=True)
     async def clear_messages(ctx, target: str = "all", amount: int = 100):
         """!clear [ゲームキー|all] [数字] で指定ゲーム(または全ゲーム)のメッセージ・保存データを削除する"""
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
         targets = GAME_CONFIG.items() if target == "all" else (
             [(target, GAME_CONFIG[target])] if target in GAME_CONFIG else []
         )
@@ -42,6 +46,10 @@ def setup_commands(bot):
     @commands.has_permissions(manage_messages=True)
     async def manual_check(ctx):
         """!check で即座に全ゲームのコードチェックを手動実行する"""
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
         await ctx.send("手動チェックを開始します...", delete_after=3)
         await run_check_all_games(bot)
         await ctx.send("手動チェックが完了しました。", delete_after=3)
@@ -50,4 +58,8 @@ def setup_commands(bot):
     @bot.command(name='ping')
     async def ping(ctx):
         """!ping でBotの応答速度を確認する"""
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
         await ctx.send(f"Pong! {round(bot.latency * 1000)}ms", delete_after=3)

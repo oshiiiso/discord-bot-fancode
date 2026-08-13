@@ -1,6 +1,7 @@
 """交換コードのスクレイピング・期限判定・表記変換を担当するモジュール。"""
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -9,6 +10,19 @@ from dateutil import parser as date_parser
 from .logger_setup import debug_log, info_log
 
 DATE_PATTERN = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})'
+
+
+def _build_api_url_and_page(url):
+    """記事URL(例: https://xxx.fandom.com/wiki/Redemption_Code)から
+    MediaWiki APIのエンドポイントURLとページ名を組み立てる。
+    api.phpは通常のページ閲覧とは別経路で、Cloudflareの
+    ブラウザチャレンジ(JS challenge)が適用されにくいため、
+    VPS等のデータセンターIPからのブロックを回避しやすい。
+    """
+    parsed = urlparse(url)
+    page = parsed.path.rsplit('/', 1)[-1]
+    api_url = f"{parsed.scheme}://{parsed.netloc}/api.php"
+    return api_url, page
 
 
 def is_expired(expiry_text):
@@ -92,17 +106,69 @@ def translate_expiry(expiry_text):
 
 
 def fetch_latest_codes(game_key, url):
+    """
+    最新の交換コードを取得する。
+    戻り値:
+        - 取得成功時: {code: {...}} の辞書（0件の場合も含む）
+        - 取得失敗時（ページ取得失敗・例外発生）: None
+    Noneを返すことで、呼び出し側が「本当にコードが0件」と
+    「取得自体に失敗した」を区別できるようにする。
+    """
     codes = {}
     try:
         # cloudscraperを使用してブロックを回避してページを取得
-        scraper = cloudscraper.create_scraper()
-        res = scraper.get(url, timeout=10)
+        # 通常のページ閲覧はCloudflareのJSチャレンジで弾かれやすいため、
+        # MediaWiki APIのaction=parseでレンダリング済みHTML断片を取得する。
+        scraper = cloudscraper.create_scraper(
+            browser={
+                "browser": "chrome",
+                "platform": "windows",
+                "desktop": True,
+            }
+        )
+        headers = {
+            "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        }
+        api_url, page = _build_api_url_and_page(url)
+        params = {
+            "action": "parse",
+            "page": page,
+            "format": "json",
+            "formatversion": "2",
+            "prop": "text",
+            "redirects": "1",
+        }
+        res = scraper.get(api_url, headers=headers, params=params, timeout=15)
 
         if res.status_code != 200:
-            info_log(f"[エラー] {game_key} のページ取得失敗 (Status: {res.status_code})")
-            return codes
+            info_log(
+                f"[エラー] {game_key} のページ取得失敗 (Status: {res.status_code})"
+            )
+            debug_log(
+                f"{game_key}: レスポンス本文(先頭300文字): {res.text[:300] if res.text else '(空)'}"
+            )
+            return None
 
-        soup = BeautifulSoup(res.text, 'lxml')
+        try:
+            data = res.json()
+        except ValueError:
+            info_log(f"[エラー] {game_key} のAPIレスポンスがJSONではありません。")
+            debug_log(
+                f"{game_key}: レスポンス本文(先頭300文字): {res.text[:300] if res.text else '(空)'}"
+            )
+            return None
+
+        if "error" in data:
+            info_log(f"[エラー] {game_key} のAPIエラー: {data['error']}")
+            return None
+
+        html_fragment = data.get("parse", {}).get("text", "")
+        if not html_fragment:
+            info_log(f"[エラー] {game_key} のページ本文が取得できませんでした。")
+            return None
+
+        soup = BeautifulSoup(html_fragment, 'lxml')
 
         # "Code"列を含むテーブルを正しく選別する
         table = None
@@ -184,8 +250,10 @@ def fetch_latest_codes(game_key, url):
                         }
         else:
             info_log(f"[警告] {game_key} のテーブルが見つかりません。URL: {url}")
+            return None
 
         debug_log(f"{game_key}: 取得件数: {len(codes)}件")
     except Exception as e:
         info_log(f"[エラー] {game_key} のスクレイピング中に問題が発生: {e}")
+        return None
     return codes
