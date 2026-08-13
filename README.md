@@ -29,7 +29,19 @@ logs/             # ログファイル(.gitignore対象)
 ```
 
 ## セットアップ
-1. 依存パッケージのインストール
+1. Discord Botを `Discord Developer Portal` で作成し下記を設定
+    1. `Oauth2` の`OAuth2 URLジェネレーターのスコープ `bot`を選択
+    2. Botの権限で下記を設定
+    ```
+    テキストの権限
+    -メッセージを送る
+    -メッセージを管理
+    -リンクを埋め込み
+    -メッセージ履歴を読む
+    ```
+    3.Botを自身のサーバーへ追加する
+
+2. 依存パッケージのインストール
 
     ```powershell
     python -m venv .venv
@@ -37,7 +49,7 @@ logs/             # ログファイル(.gitignore対象)
     pip install -r requirements.txt
     ```
 
-2. プロジェクトルートに`.env.example` ファイルから `.env` をコピー
+3. プロジェクトルートに`.env.example` ファイルから `.env` をコピー
 
     ```
     DISCORD_BOT_TOKEN=your_bot_token_here
@@ -48,7 +60,7 @@ logs/             # ログファイル(.gitignore対象)
     WUTHERING_CHANNEL_ID=your_channel_id
     ```
 
-3. 通知するDiscordチャンネル4つを作成（場所・名称自由）
+4. 通知するDiscordチャンネル4つを作成（場所・名称自由）
     ```
     通知カテゴリ
     ├原神コード
@@ -57,9 +69,9 @@ logs/             # ログファイル(.gitignore対象)
     └鳴潮コード
     ```
 
-4. 各チャンネルのIDを`.env`の対応する項目に設定
+5. 各チャンネルのIDを`.env`の対応する項目に設定
 
-5. Botを起動
+6. Botを起動
 
     ```powershell
     python main.py
