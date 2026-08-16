@@ -11,7 +11,7 @@ from .storage import (
     sent_codes_exists,
 )
 from .scraper import fetch_latest_codes
-from .embeds import create_list_embed, send_long_message
+from .embeds import create_list_embed
 
 
 async def run_check_all_games(bot):
@@ -46,11 +46,6 @@ async def run_check_all_games(bot):
                 if not is_first_run:
                     if added_codes:
                         info_log(f"【{config['name']}】新しい交換コードが追加されました: {', '.join(added_codes)}")
-                        await send_long_message(
-                            channel,
-                            f"【{config['name']} アップデート】新しい交換コードが追加されました。\n追加コード: ",
-                            added_codes
-                        )
                     if removed_codes:
                         del_code_str = ", ".join([f"`{c}`" for c in removed_codes])
                         info_log(f"【{config['name']}】コードが期限切れになりました: {del_code_str}")

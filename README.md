@@ -6,7 +6,7 @@ Wiki(Fandom)から自動取得し、Discordチャンネルに通知するBot
 ## 機能
 
 - 1時間ごとに各ゲームの最新交換コードを自動チェック
-- 新規コードをEmbedで通知（期限切れのコードは通知対象から除外）
+- 現在有効なコード一覧をEmbedで固定メッセージとして投稿・自動更新（期限切れのコードは一覧から除外）
 - `!check` で手動チェックを即時実行
 - `!clear` でメッセージ・保存データを削除
 - `!ping` でBotの死活確認
@@ -34,10 +34,10 @@ logs/             # ログファイル(.gitignore対象)
     2. Botの権限で下記を設定
     ```
     テキストの権限
-    -メッセージを送る
-    -メッセージを管理
-    -リンクを埋め込み
-    -メッセージ履歴を読む
+    - メッセージを送る
+    - メッセージを管理
+    - リンクを埋め込み
+    - メッセージ履歴を読む
     ```
     3.Botを自身のサーバーへ追加する
 
@@ -52,13 +52,34 @@ logs/             # ログファイル(.gitignore対象)
 3. プロジェクトルートに`.env.example` ファイルから `.env` をコピー
 
     ```
-    DISCORD_BOT_TOKEN=your_bot_token_here
-    DEBUG_MODE=False
-    GENSHIN_CHANNEL_ID=your_channel_id
-    STARRAIL_CHANNEL_ID=your_channel_id
-    ZZZ_CHANNEL_ID=your_channel_id
-    WUTHERING_CHANNEL_ID=your_channel_id
+    LOG_LEVEL=INFO
+
+    DISCORD_BOT_TOKEN=xxxxxxxxxx
+    GUILD_ID=123456789012345678
+
+    COMMAND_PREFIX=!
+    CHECK_INTERVAL_HOURS=1
+    LOG_RETENTION_DAYS=30
+
+    GENSHIN_CHANNEL_ID=123456789012345678
+    STARRAIL_CHANNEL_ID=123456789012345678
+    ZZZ_CHANNEL_ID=123456789012345678
+    WUTHERING_CHANNEL_ID=123456789012345678
     ```
+
+    - `LOG_LEVEL`
+      - 出力するログレベル(DEBUG、INFO、WARNING、ERROR)
+    - `GUILD_ID`
+      - Botが動作するサーバー(Guild)を1つに限定するための設定
+        開発用サーバーと本番サーバーで別々のBotトークンを使う場合の保険として、
+        指定したサーバー以外ではコマンドが一切反応しなくなる(未設定: 制限なし)
+    - `COMMAND_PREFIX`
+      - 開発用と本番用でコマンドのプレフィックスを変えたい場合に変更する(未設定: `!`)
+    - `CHECK_INTERVAL_HOURS`
+      - は交換コードの自動チェック間隔(未設定: 1時間)
+    - `LOG_RETENTION_DAYS`
+      - ログファイルの保持日数
+        ログは日付ごとに自動でローテーションされ、この日数を超えた古いログファイルは自動削除(未設定: 30日)
 
 4. 通知するDiscordチャンネル4つを作成（場所・名称自由）
     ```
@@ -69,7 +90,7 @@ logs/             # ログファイル(.gitignore対象)
     └鳴潮コード
     ```
 
-5. 各チャンネルのIDを`.env`の対応する項目に設定
+5. サーバー、チャンネルのIDを`.env`の対応する項目に設定
 
 6. Botを起動
 

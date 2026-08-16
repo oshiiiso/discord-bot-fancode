@@ -9,6 +9,17 @@ from .checker import run_check_all_games
 
 def setup_commands(bot):
     """!clear, !check コマンドをbotに登録する。"""
+
+    @bot.event
+    async def on_command_error(ctx, error):
+        # 権限不足で弾かれた場合はその旨をチャンネルに表示する
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("このコマンドを実行する権限がありません。", delete_after=5)
+            return
+        # それ以外のエラーはログに残しつつ、想定外の握りつぶしを避けるため再送出する
+        info_log(f"[エラー] コマンド実行中に例外が発生しました: {error}")
+        raise error
+
     @bot.command(name='clear')
     @commands.has_permissions(manage_messages=True)
     async def clear_messages(ctx, target: str = "all", amount: int = 100):

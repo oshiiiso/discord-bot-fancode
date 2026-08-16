@@ -13,12 +13,9 @@ DATE_PATTERN = r'([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1
 
 
 def _build_api_url_and_page(url):
-    """記事URL(例: https://xxx.fandom.com/wiki/Redemption_Code)から
-    MediaWiki APIのエンドポイントURLとページ名を組み立てる。
-    api.phpは通常のページ閲覧とは別経路で、Cloudflareの
-    ブラウザチャレンジ(JS challenge)が適用されにくいため、
-    VPS等のデータセンターIPからのブロックを回避しやすい。
-    """
+    # 記事URL(https://xxx.fandom.com/wiki/Redemption_Code)から
+    # MediaWiki APIのURLとページ名を作る。
+    # api.php経由ならCloudflareのJSチェックを回避しやすい
     parsed = urlparse(url)
     page = parsed.path.rsplit('/', 1)[-1]
     api_url = f"{parsed.scheme}://{parsed.netloc}/api.php"
@@ -28,7 +25,9 @@ def _build_api_url_and_page(url):
 def is_expired(expiry_text):
     """
     Duration/Expiry列のテキストから期限切れかどうかを判定する。
-    例: "Expired", "until 2024-01-01", "2023/12/31" などに対応。
+    例: "Expired", "Valid until: 2024-01-01" などに対応。
+    "Discovered: ..."のみで"Valid until"がない場合は
+    発見日を終了日と誤解しないよう、期限不明(有効扱い)とする。
     判定できない場合は False（有効扱い）を返す。
     """
     if not expiry_text:
@@ -45,9 +44,15 @@ def is_expired(expiry_text):
     if any(kw in lower_text for kw in ['unknown', 'permanent', 'tbd', 'n/a', '不明']):
         return False
 
-    # テキスト中の日付らしき部分を正規表現で抽出してパースを試みる
-    # 例: "Until March 31, 2025" -> "March 31, 2025"
-    date_candidates = re.findall(DATE_PATTERN, text)
+    # "Valid until"が明記されていなければ、Discovered日付だけの行なので
+    # 期限不明として有効扱いにする(発見日を終了日と誤判定しない)。
+    if 'valid until' not in lower_text and 'until' not in lower_text:
+        return False
+
+    # "Valid until" 以降の部分のみを対象に日付を抽出する
+    until_part = re.split(r'valid until:?', text, flags=re.IGNORECASE)[-1]
+
+    date_candidates = re.findall(DATE_PATTERN, until_part)
 
     parsed_dates = []
     for candidate in date_candidates:
@@ -58,12 +63,8 @@ def is_expired(expiry_text):
             continue
 
     if not parsed_dates:
-        # 日付を抽出できなければ、パース不能として全文で試す
-        try:
-            parsed = date_parser.parse(text, fuzzy=True)
-            parsed_dates.append(parsed)
-        except (ValueError, OverflowError):
-            return False  # 判定不能なら有効扱い
+        # 日付を抽出できなければ判定不能として有効扱い
+        return False
 
     # 複数の日付がある場合（期間表記）は最後の日付（終了日）を採用
     latest_date = max(parsed_dates)
@@ -84,8 +85,14 @@ def translate_expiry(expiry_text):
     if any(kw in lower_text for kw in ['expired', '終了', '期限切れ', 'ended']):
         return "期限切れ"
 
+    # "Valid until"がなければ、Discovered日付を終了日と誤解しないように不明扱いにする
+    if 'valid until' not in lower_text and 'until' not in lower_text:
+        return "無期限/不明"
+
+    until_part = re.split(r'valid until:?', text, flags=re.IGNORECASE)[-1]
+
     # テキスト中の日付らしき部分を正規表現で抽出（"In 3 weeks"のような相対表記は除外）
-    date_candidates = re.findall(DATE_PATTERN, text)
+    date_candidates = re.findall(DATE_PATTERN, until_part)
 
     parsed_dates = []
     for candidate in date_candidates:
@@ -106,19 +113,13 @@ def translate_expiry(expiry_text):
 
 
 def fetch_latest_codes(game_key, url):
-    """
-    最新の交換コードを取得する。
-    戻り値:
-        - 取得成功時: {code: {...}} の辞書（0件の場合も含む）
-        - 取得失敗時（ページ取得失敗・例外発生）: None
-    Noneを返すことで、呼び出し側が「本当にコードが0件」と
-    「取得自体に失敗した」を区別できるようにする。
+    """最新の交換コードを取得する。
+    取得失敗時はNoneを返す(0件と区別するため)。
     """
     codes = {}
     try:
-        # cloudscraperを使用してブロックを回避してページを取得
-        # 通常のページ閲覧はCloudflareのJSチャレンジで弾かれやすいため、
-        # MediaWiki APIのaction=parseでレンダリング済みHTML断片を取得する。
+        # 通常のページ閲覧はCloudflareにJSチェックで弾かれやすいので、
+        # MediaWiki API(action=parse)でレンダリング済みHTMLを取ってくる
         scraper = cloudscraper.create_scraper(
             browser={
                 "browser": "chrome",

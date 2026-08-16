@@ -2,11 +2,30 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    load_dotenv()
+except UnicodeDecodeError as e:
+    raise RuntimeError(
+        ".env ファイルの文字コードがUTF-8ではありません。"
+        "エディタで開いてUTF-8(BOMなし)で保存し直してください。"
+        f"(詳細: {e})"
+    ) from e
 
 # ==================== 【設定】 ====================
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').strip().lower() == 'true'
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').strip().upper()
+
+# このBotが反応するサーバーID(未設定なら制限なし)
+GUILD_ID = int(os.getenv('GUILD_ID', 0))
+
+# コマンドプレフィックス(開発用・本番用で分けたい場合のためenv化)
+COMMAND_PREFIX = os.getenv('COMMAND_PREFIX', '!')
+
+# 交換コードの自動チェック間隔(時間)
+CHECK_INTERVAL_HOURS = int(os.getenv('CHECK_INTERVAL_HOURS', 1))
+
+# ログファイルの保持日数(これを超えた古いログは自動削除される)
+LOG_RETENTION_DAYS = int(os.getenv('LOG_RETENTION_DAYS', 30))
 
 # プロジェクトルート・生成ファイルの保存先ディレクトリ
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

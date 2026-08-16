@@ -1,22 +1,9 @@
-"""Discordへの表示関連（Embed生成・長文メッセージ分割送信）を担当するモジュール。"""
+"""Discordへの表示関連（Embed生成）を担当するモジュール。"""
 from datetime import datetime
 
 import discord
 
 from .scraper import translate_expiry
-
-
-async def send_long_message(channel, header, items, max_length=1900):
-    """2000文字制限を超えないようにメッセージを分割送信する"""
-    chunk = header
-    for item in items:
-        addition = f"`{item}`, "
-        if len(chunk) + len(addition) > max_length:
-            await channel.send(chunk.rstrip(", "))
-            chunk = ""
-        chunk += addition
-    if chunk.strip(", "):
-        await channel.send(chunk.rstrip(", "))
 
 
 def create_list_embed(game_name, current_codes, config):
