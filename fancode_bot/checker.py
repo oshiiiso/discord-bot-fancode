@@ -9,9 +9,15 @@ from .storage import (
     load_message_id,
     save_message_id,
     sent_codes_exists,
+    save_codes_data,
+    save_last_check,
+    append_history,
 )
 from .scraper import fetch_latest_codes
 from .embeds import create_list_embed
+
+# 追加コード通知メッセージの表示期間(3日)
+ADDITION_NOTICE_LIFETIME_SECONDS = 3 * 24 * 60 * 60
 
 
 async def run_check_all_games(bot):
@@ -46,27 +52,42 @@ async def run_check_all_games(bot):
                 if not is_first_run:
                     if added_codes:
                         info_log(f"【{config['name']}】新しい交換コードが追加されました: {', '.join(added_codes)}")
+                        append_history(key, "added", added_codes)
                     if removed_codes:
                         del_code_str = ", ".join([f"`{c}`" for c in removed_codes])
                         info_log(f"【{config['name']}】コードが期限切れになりました: {del_code_str}")
+                        append_history(key, "removed", removed_codes)
 
-                fixed_msg_id = load_message_id(key)
-                embed = create_list_embed(config["name"], current_codes, config)
+            # 一覧の固定メッセージは、変更の有無に関わらず毎回編集して
+            # 「最終確認」時刻を更新する。
+            save_codes_data(key, current_codes)
+            save_last_check(key)
+            fixed_msg_id = load_message_id(key)
+            embed = create_list_embed(config["name"], current_codes, config)
 
-                if fixed_msg_id:
-                    try:
-                        msg = await channel.fetch_message(fixed_msg_id)
-                        await msg.edit(embed=embed)
-                        debug_log(f"【{config['name']}】一覧メッセージを更新しました。")
-                    except discord.NotFound:
-                        msg = await channel.send(embed=embed)
-                        save_message_id(key, msg.id)
-                        info_log(f"【{config['name']}】一覧メッセージが見つからず、新規投稿しました。")
-                else:
+            if fixed_msg_id:
+                try:
+                    msg = await channel.fetch_message(fixed_msg_id)
+                    await msg.edit(embed=embed)
+                    debug_log(f"【{config['name']}】一覧メッセージを更新しました。")
+                except discord.NotFound:
                     msg = await channel.send(embed=embed)
                     save_message_id(key, msg.id)
-                    info_log(f"【{config['name']}】新しく一覧メッセージを投稿しました。")
+                    info_log(f"【{config['name']}】一覧メッセージが見つからず、新規投稿しました。")
             else:
+                msg = await channel.send(embed=embed)
+                save_message_id(key, msg.id)
+                info_log(f"【{config['name']}】新しく一覧メッセージを投稿しました。")
+
+            # コードが追加された場合のみ、別途お知らせメッセージを投稿する(3日後に自動削除)
+            if not is_first_run and added_codes:
+                code_str = ", ".join(f"`{c}`" for c in added_codes)
+                await channel.send(
+                    f"🎉 【{config['name']}】新しい交換コードが追加されました：{code_str}",
+                    delete_after=ADDITION_NOTICE_LIFETIME_SECONDS,
+                )
+
+            if not (added_codes or removed_codes or is_first_run):
                 debug_log(f"【{config['name']}】変更はありません。")
         except Exception as e:
             # 1ゲームのエラーでループ全体が止まらないようにする

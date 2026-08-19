@@ -1,114 +1,87 @@
 # Discord Bot - FanCode
 
-HoYoverse系ゲーム（原神・崩壊：スターレイル・ゼンレスゾーンゼロ・鳴潮）の交換コードを
-Wiki(Fandom)から自動取得し、Discordチャンネルに通知するBot
+HoYoverse 系ゲーム（原神・崩壊：スターレイル・ゼンレスゾーンゼロ・鳴潮）の交換コードを Wiki（Fandom）から取得し、Discord に通知する Bot（Python + discord.py）
 
-## 機能
+個人・身内利用向けに開発した Bot です。ソースは公開していますが、**不特定多数向けの配布・運用は想定していません**。使う場合は自分でセットアップするか、信頼できる人が管理するサーバーでのみ利用してください。
 
-- 1時間ごとに各ゲームの最新交換コードを自動チェック
-- 現在有効なコード一覧をEmbedで固定メッセージとして投稿・自動更新（期限切れのコードは一覧から除外）
-- `!check` で手動チェックを即時実行
-- `!clear` でメッセージ・保存データを削除
-- `!ping` でBotの死活確認
+- リポジトリ: https://github.com/oshiiiso/discord-bot-fancode
+- 不具合・要望: [Issues](https://github.com/oshiiiso/discord-bot-fancode/issues)
+- 使い方: [docs/USER.md](docs/USER.md)
+
+## 機能概要
+
+- 各ゲームの交換コードを定期チェック（デフォルト 1 時間ごと）
+- 有効なコード一覧を Embed の固定メッセージとして自動更新
+- 新規コード追加時に別途通知（3 日後に自動削除）
+- `/check` `/status` `/codes` `/history` などのスラッシュコマンド
 
 ## ディレクトリ構成
 
 ```
-main.py           # エントリーポイント
-fancode_bot/
-  config.py       # 設定・定数（GAME_CONFIG等）
-  logger_setup.py # ロガー設定
-  storage.py      # 保存済みコード・メッセージIDの読み書き
-  scraper.py      # Wikiスクレイピング・期限判定
-  embeds.py       # Discord Embed生成・送信
-  checker.py      # 全ゲームチェックのコアロジック
-  events.py       # on_ready・定期実行タスク
-  commands.py     # !clear, !check, !ping コマンド
-data/             # 生成される保存データ(.gitignore対象)
-logs/             # ログファイル(.gitignore対象)
+main.py                 # エントリーポイント
+fancode_bot/            # Bot 本体（スクレイピング・通知・コマンド）
+docs/USER.md            # セットアップ・運用ガイド
+data/                   # 実行時データ（.gitignore）
+logs/                   # ログ（.gitignore）
 ```
 
-## セットアップ
-1. Discord Botを `Discord Developer Portal` で作成し下記を設定
-    1. `Oauth2` の`OAuth2 URLジェネレーターのスコープ `bot`を選択
-    2. Botの権限で下記を設定
-    ```
-    テキストの権限
-    - メッセージを送る
-    - メッセージを管理
-    - リンクを埋め込み
-    - メッセージ履歴を読む
-    ```
-    3.Botを自身のサーバーへ追加する
+## 開発環境セットアップ
 
-2. 依存パッケージのインストール
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env   # トークン・チャンネル ID を編集
+python main.py
+```
 
-    ```powershell
-    python -m venv .venv
-    .venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
+詳細な手順・権限設定・コマンド一覧は [docs/USER.md](docs/USER.md) を参照。
 
-3. プロジェクトルートに`.env.example` ファイルから `.env` をコピー
+### 環境変数（`.env`）
 
-    ```
-    LOG_LEVEL=INFO
-
-    DISCORD_BOT_TOKEN=xxxxxxxxxx
-    GUILD_ID=123456789012345678
-
-    COMMAND_PREFIX=!
-    CHECK_INTERVAL_HOURS=1
-    LOG_RETENTION_DAYS=30
-
-    GENSHIN_CHANNEL_ID=123456789012345678
-    STARRAIL_CHANNEL_ID=123456789012345678
-    ZZZ_CHANNEL_ID=123456789012345678
-    WUTHERING_CHANNEL_ID=123456789012345678
-    ```
-
-    - `LOG_LEVEL`
-      - 出力するログレベル(DEBUG、INFO、WARNING、ERROR)
-    - `GUILD_ID`
-      - Botが動作するサーバー(Guild)を1つに限定するための設定
-        開発用サーバーと本番サーバーで別々のBotトークンを使う場合の保険として、
-        指定したサーバー以外ではコマンドが一切反応しなくなる(未設定: 制限なし)
-    - `COMMAND_PREFIX`
-      - 開発用と本番用でコマンドのプレフィックスを変えたい場合に変更する(未設定: `!`)
-    - `CHECK_INTERVAL_HOURS`
-      - は交換コードの自動チェック間隔(未設定: 1時間)
-    - `LOG_RETENTION_DAYS`
-      - ログファイルの保持日数
-        ログは日付ごとに自動でローテーションされ、この日数を超えた古いログファイルは自動削除(未設定: 30日)
-
-4. 通知するDiscordチャンネル4つを作成（場所・名称自由）
-    ```
-    通知カテゴリ
-    ├原神コード
-    ├スタレコード
-    ├ゼンゼロコード
-    └鳴潮コード
-    ```
-
-5. サーバー、チャンネルのIDを`.env`の対応する項目に設定
-
-6. Botを起動
-
-    ```powershell
-    python main.py
-    ```
-
-## コマンド一覧
-
-| コマンド | 説明 | 権限 |
+| 変数 | 説明 | デフォルト |
 |---|---|---|
-| `!check` | 全ゲームのコードチェックを即時実行 | manage_messages |
-| `!clear [ゲームキー\|all] [件数]` | 指定ゲーム(または全ゲーム)のメッセージ・保存データを削除 | manage_messages |
-| `!ping` | Botの応答速度を確認 | 誰でも |
+| `DISCORD_BOT_TOKEN` | Bot トークン | —（必須） |
+| `GUILD_ID` | 動作させるサーバー ID | 未設定時は制限なし |
+| `GENSHIN_CHANNEL_ID` 等 | 各ゲームの通知チャンネル ID | —（必須） |
+| `CHECK_INTERVAL_HOURS` | 自動チェック間隔（時間） | `1` |
+| `LOG_LEVEL` | DEBUG / INFO / WARNING / ERROR | `INFO` |
+| `LOG_RETENTION_DAYS` | ログ保持日数 | `30` |
 
-## 対応ゲーム
+`.env` は Git に含めません。
 
-- `genshin`: 原神
-- `starrail`: 崩壊：スターレイル
-- `zzz`: ゼンレスゾーンゼロ
-- `wuthering`: 鳴潮
+## ブランチ運用
+
+| ブランチ | 用途 |
+|---------|------|
+| **develop** | 日常の開発 |
+| **main** | 確定版（develop からマージ。タグ `v*` で版を管理） |
+
+### 普段の開発
+
+```powershell
+git checkout develop
+# 作業 → commit → push
+git push origin develop
+```
+
+### 確定版を出す（例: v0.1.0）
+
+```powershell
+git checkout main
+git merge develop -m "release: v0.1.0"
+git tag v0.1.0
+git push origin main --tags
+git checkout develop
+```
+
+## 注意事項
+
+- Fandom Wiki のスクレイピングに依存しています。サイト側の変更・障害のリスクは自己責任でください。
+- 本 Bot は個人サーバー向けです。公開サービスとしての提供は想定していません。
+
+## ライセンス
+
+MIT License — Copyright (c) 2026 oshiiiso
+
+詳細は [LICENSE](LICENSE) を参照。

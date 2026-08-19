@@ -18,9 +18,6 @@ LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').strip().upper()
 # このBotが反応するサーバーID(未設定なら制限なし)
 GUILD_ID = int(os.getenv('GUILD_ID', 0))
 
-# コマンドプレフィックス(開発用・本番用で分けたい場合のためenv化)
-COMMAND_PREFIX = os.getenv('COMMAND_PREFIX', '!')
-
 # 交換コードの自動チェック間隔(時間)
 CHECK_INTERVAL_HOURS = int(os.getenv('CHECK_INTERVAL_HOURS', 1))
 

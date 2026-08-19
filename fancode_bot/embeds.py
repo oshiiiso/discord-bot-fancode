@@ -3,6 +3,7 @@ from datetime import datetime
 
 import discord
 
+from .config import CHECK_INTERVAL_HOURS
 from .scraper import translate_expiry
 
 
@@ -11,8 +12,13 @@ def create_list_embed(game_name, current_codes, config):
         title=f"【{game_name}】現在有効な交換コード一覧",
         color=config["color"]
     )
+    now = datetime.now()
+    footer_prefix = f"最終確認: {now:%Y-%m-%d %H:%M} ｜ {CHECK_INTERVAL_HOURS}時間ごとに自動更新中"
+
     if not current_codes:
         embed.description = "現在、有効な交換コードはありません。"
+        embed.set_footer(text=footer_prefix)
+        embed.timestamp = now
         return embed
 
     show_reward = config.get("show_reward", False)
@@ -44,6 +50,6 @@ def create_list_embed(game_name, current_codes, config):
     if current_chunk:
         embed.add_field(name="\u200b", value=current_chunk, inline=False)
 
-    embed.set_footer(text=f"合計 {len(current_codes)} 件 ｜ 1時間ごとに自動更新中")
-    embed.timestamp = datetime.now()
+    embed.set_footer(text=f"合計 {len(current_codes)} 件 ｜ {footer_prefix}")
+    embed.timestamp = now
     return embed

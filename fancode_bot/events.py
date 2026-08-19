@@ -2,9 +2,10 @@
 import asyncio
 from datetime import datetime, timedelta
 
+import discord
 from discord.ext import tasks
 
-from .config import CHECK_INTERVAL_HOURS
+from .config import CHECK_INTERVAL_HOURS, GUILD_ID
 from .logger_setup import debug_log, info_log
 from .checker import run_check_all_games
 
@@ -39,3 +40,19 @@ def setup_events(bot):
     @bot.event
     async def on_ready():
         info_log(f'=== {bot.user.name} が起動しました ===')
+
+        # スラッシュコマンドを同期する。GUILD_ID指定時はそのサーバー限定で
+        # 同期することで、グローバル同期より早く反映される。
+        try:
+            if GUILD_ID:
+                guild_obj = discord.Object(id=GUILD_ID)
+                bot.tree.copy_global_to(guild=guild_obj)
+                synced = await bot.tree.sync(guild=guild_obj)
+            else:
+                synced = await bot.tree.sync()
+            debug_log(f"[コマンド同期] {len(synced)} 件のスラッシュコマンドを同期しました。")
+        except Exception as e:
+            info_log(f"[エラー] スラッシュコマンドの同期に失敗しました: {e}")
+
+        if not check_all_games_loop.is_running():
+            check_all_games_loop.start()
