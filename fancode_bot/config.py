@@ -24,6 +24,9 @@ CHECK_INTERVAL_HOURS = int(os.getenv('CHECK_INTERVAL_HOURS', 1))
 # ログファイルの保持日数(これを超えた古いログは自動削除される)
 LOG_RETENTION_DAYS = int(os.getenv('LOG_RETENTION_DAYS', 30))
 
+# 追加コード通知メッセージの表示期間(秒)。再起動後もこの期限で削除する
+ADDITION_NOTICE_LIFETIME_SECONDS = 3 * 24 * 60 * 60
+
 # プロジェクトルート・生成ファイルの保存先ディレクトリ
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')

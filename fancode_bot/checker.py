@@ -15,9 +15,7 @@ from .storage import (
 )
 from .scraper import fetch_latest_codes
 from .embeds import create_list_embed
-
-# 追加コード通知メッセージの表示期間(3日)
-ADDITION_NOTICE_LIFETIME_SECONDS = 3 * 24 * 60 * 60
+from .addition_notices import register_addition_notice
 
 
 async def run_check_all_games(bot):
@@ -82,10 +80,10 @@ async def run_check_all_games(bot):
             # コードが追加された場合のみ、別途お知らせメッセージを投稿する(3日後に自動削除)
             if not is_first_run and added_codes:
                 code_str = ", ".join(f"`{c}`" for c in added_codes)
-                await channel.send(
+                notice = await channel.send(
                     f"🎉 【{config['name']}】新しい交換コードが追加されました：{code_str}",
-                    delete_after=ADDITION_NOTICE_LIFETIME_SECONDS,
                 )
+                register_addition_notice(bot, notice)
 
             if not (added_codes or removed_codes or is_first_run):
                 debug_log(f"【{config['name']}】変更はありません。")

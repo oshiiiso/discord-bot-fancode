@@ -8,6 +8,7 @@ from discord.ext import tasks
 from .config import CHECK_INTERVAL_HOURS, GUILD_ID
 from .logger_setup import debug_log, info_log
 from .checker import run_check_all_games
+from .addition_notices import resume_pending_addition_notices
 
 
 def setup_events(bot):
@@ -53,6 +54,8 @@ def setup_events(bot):
             debug_log(f"[コマンド同期] {len(synced)} 件のスラッシュコマンドを同期しました。")
         except Exception as e:
             info_log(f"[エラー] スラッシュコマンドの同期に失敗しました: {e}")
+
+        resume_pending_addition_notices(bot)
 
         if not check_all_games_loop.is_running():
             check_all_games_loop.start()

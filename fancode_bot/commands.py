@@ -6,7 +6,13 @@ from discord import app_commands
 
 from .config import GAME_CONFIG, CHECK_INTERVAL_HOURS
 from .logger_setup import debug_log, info_log
-from .storage import delete_game_files, load_last_check, load_codes_data, load_history
+from .storage import (
+    delete_game_files,
+    load_last_check,
+    load_codes_data,
+    load_history,
+    remove_pending_addition_notices_for_channel,
+)
 from .checker import run_check_all_games
 from .embeds import create_list_embed
 
@@ -63,6 +69,7 @@ def setup_commands(bot):
             # 保存されているtxtファイルも削除する
             for filename in delete_game_files(key):
                 debug_log(f"{filename} を削除しました。")
+            remove_pending_addition_notices_for_channel(game_config["channel_id"])
 
         scope = "全ゲーム" if target == "all" else GAME_CONFIG[target]["name"]
         await interaction.followup.send(f"{scope}のメッセージと保存データを削除しました。", ephemeral=True)

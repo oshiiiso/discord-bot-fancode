@@ -1,7 +1,7 @@
 """送信済みコード・固定メッセージIDの永続化を担当するモジュール。"""
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .config import DATA_DIR
 
@@ -26,6 +26,10 @@ def _last_check_path(game_key):
 
 def _history_path(game_key):
     return os.path.join(DATA_DIR, f"history_{game_key}.json")
+
+
+def _addition_notice_deletes_path():
+    return os.path.join(DATA_DIR, "addition_notice_deletes.json")
 
 
 def sent_codes_exists(game_key):
@@ -121,6 +125,60 @@ def load_history(game_key):
             except json.JSONDecodeError:
                 return []
     return []
+
+
+def load_pending_addition_notices() -> list[dict]:
+    """再起動後も削除する追加通知の一覧を読み込む。"""
+    filename = _addition_notice_deletes_path()
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            return []
+    if not isinstance(data, list):
+        return []
+    return [entry for entry in data if isinstance(entry, dict)]
+
+
+def save_pending_addition_notices(entries: list[dict]) -> None:
+    filename = _addition_notice_deletes_path()
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False)
+
+
+def add_pending_addition_notice(channel_id: int, message_id: int, delete_at: datetime) -> None:
+    """追加通知の削除予定を保存する。"""
+    if delete_at.tzinfo is None:
+        delete_at = delete_at.replace(tzinfo=timezone.utc)
+    entries = [
+        entry for entry in load_pending_addition_notices()
+        if entry.get("message_id") != message_id
+    ]
+    entries.append({
+        "channel_id": channel_id,
+        "message_id": message_id,
+        "delete_at": delete_at.isoformat(),
+    })
+    save_pending_addition_notices(entries)
+
+
+def remove_pending_addition_notice(message_id: int) -> None:
+    entries = [
+        entry for entry in load_pending_addition_notices()
+        if entry.get("message_id") != message_id
+    ]
+    save_pending_addition_notices(entries)
+
+
+def remove_pending_addition_notices_for_channel(channel_id: int) -> None:
+    """指定チャンネルの追加通知削除予定をすべて取り除く。"""
+    entries = [
+        entry for entry in load_pending_addition_notices()
+        if entry.get("channel_id") != channel_id
+    ]
+    save_pending_addition_notices(entries)
 
 
 def delete_game_files(game_key):
