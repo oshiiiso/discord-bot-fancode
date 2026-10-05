@@ -2,7 +2,7 @@
 
 HoYoverse 系ゲーム（原神・崩壊：スターレイル・ゼンレスゾーンゼロ・鳴潮）の交換コードを Wiki（Fandom）から取得し、Discord に通知する Bot（Python + discord.py）
 
-個人・身内利用向けに開発した Bot です。ソースは公開していますが、**不特定多数向けの配布・運用は想定していません**。使う場合は自分でセットアップするか、信頼できる人が管理するサーバーでのみ利用してください。
+個人・身内利用向けに開発した Bot です。ソースは公開しています。**不特定多数向けの配布・運用は想定していません**が、ソースの使い方は基本的に自由です。自分のサーバーで動かしたい場合は、[Issues](https://github.com/oshiiiso/discord-bot-fancode/issues) か連絡をもらえればセットアップを補助します。
 
 - リポジトリ: https://github.com/oshiiiso/discord-bot-fancode
 - 不具合・要望: [Issues](https://github.com/oshiiiso/discord-bot-fancode/issues)

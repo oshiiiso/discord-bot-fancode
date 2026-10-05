@@ -36,3 +36,7 @@ storage/state.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Cursor
+.cursor/
+.cursorignore

@@ -3,7 +3,7 @@
 HoYoverse 系ゲームの交換コードを Wiki から取得し、Discord チャンネルへ通知します。
 
 > **個人・身内利用向け**  
-> 信頼できるサーバーでのみ運用してください。不具合・要望は [Issues](https://github.com/oshiiiso/discord-bot-fancode/issues) へ。
+> 信頼できるサーバーでのみ運用してください。ソースの使い方は基本的に自由です。動かしたい場合は [Issues](https://github.com/oshiiiso/discord-bot-fancode/issues) か連絡をもらえればセットアップを補助します。
 
 ---
 
