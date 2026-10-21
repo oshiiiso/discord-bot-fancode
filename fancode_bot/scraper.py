@@ -117,6 +117,7 @@ def fetch_latest_codes(game_key, url):
     取得失敗時はNoneを返す(0件と区別するため)。
     """
     codes = {}
+    scraper = None
     try:
         # 通常のページ閲覧はCloudflareにJSチェックで弾かれやすいので、
         # MediaWiki API(action=parse)でレンダリング済みHTMLを取ってくる
@@ -257,4 +258,8 @@ def fetch_latest_codes(game_key, url):
     except Exception as e:
         info_log(f"[エラー] {game_key} のスクレイピング中に問題が発生: {e}")
         return None
+    finally:
+        # セッションを閉じないと接続が残り、VPSで Too many open files になる
+        if scraper is not None:
+            scraper.close()
     return codes
